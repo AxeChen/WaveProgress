@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="WaveProgressView">
+
+        <attr name="radius" format="dimension"/>
+        <attr name="progress" format="integer"/>
+        <attr name="textColor" format="color"/>
+        <attr name="waveColor" format="color"/>
+        <attr name="borderColor" format="color"/>
+        <attr name="hideText" format="boolean"/>
+        <attr name="borderWidth" format="dimension"/>
+        <attr name="textSize" format="dimension"/>
+        <attr name="waveHeight" format="dimension"/>
+
+    </declare-styleable>
+
+</resources>

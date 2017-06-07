@@ -30,19 +30,13 @@ public class WaveProgressActivity extends AppCompatActivity {
     }
 
     private void initView() {
-        mProgressBar = (SeekBar) findViewById(R.id.seekProgressBar);
         mWaveView = (WaveProgressView) findViewById(R.id.waveView);
+        mProgressBar = (SeekBar) findViewById(R.id.seekProgressBar);
+        mProgressBar.setProgress(mWaveView.getProgress());
         mTextColorGroup = (RadioGroup) findViewById(R.id.textColorGroup);
-        mTextColorGroup.check(R.id.tcColorB);
-
         mWaveColorGroup = (RadioGroup) findViewById(R.id.waveColorGroup);
-        mWaveColorGroup.check(R.id.wcColorR);
-
         mBorderColorGroup = (RadioGroup) findViewById(R.id.borderColorGroup);
-        mBorderColorGroup.check(R.id.bcColorR);
-
         mHideTextGroup = (RadioGroup) findViewById(R.id.hideTextGroup);
-        mHideTextGroup.check(R.id.htFalse);
     }
 
     private void initListener() {

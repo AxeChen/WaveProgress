@@ -2,6 +2,7 @@ package com.mg.axe.waveprogress;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -23,44 +24,64 @@ public class WaveProgressView extends View {
     /**
      * 默认波长
      */
-    private static final int DEFAULT_PROGRESS_HEIGHT = 300;
+    private static final int DEFAULT_RADIUS = 100;
 
     /**
      * 默认波峰和波谷的高度
      */
-    private static final int DEFAULT_WAVE_HEIGHT = 20;
+    private static final int DEFAULT_WAVE_HEIGHT = 5;
 
     /**
      * 默认的最大的进度
      */
     private static final int DEFAULT_MAX_PROGRESS = 100;
 
-    private int mProgress;
-    //进度条的高度
-    private int mProgressHeight = DEFAULT_PROGRESS_HEIGHT;
-    //波高
-    private int mWaveHeight = DEFAULT_WAVE_HEIGHT;
+    /**
+     * 默认边框宽度
+     */
+    private static final int DEFAULT_BORDER_WIDTH = 2;
 
-    //进度条的赛贝尔曲线
+    /**
+     * 默认的进度字体大小
+     */
+    private static final int DEFAULT_TEXT_SIZE = 16;
+
+    //进度
+    private int mProgress;
+    //半径
+    private int mRadius = DEFAULT_RADIUS;
+    //进度条的高度
+    private int mProgressHeight;
+    //文字的大小
+    private int mTextSize;
+    //波高
+    private int mWaveHeight;
+    //文字颜色
+    private int mTextColor;
+    //波浪的颜色
+    private int mWaveColor;
+    //圆形边框的颜色
+    private int mBorderColor;
+    //圆形边框的宽度
+    private int borderWidth;
+    //是否隐藏进度文字
+    private boolean isHideProgressText = false;
+    //进度条的贝塞尔曲线
     private Path mBerzierPath;
     //用于裁剪的Path
-    private Path path;
-
+    private Path mCirclePath;
     // 画圆的画笔
     private Paint mCirclePaint;
     // 画文字的笔
     private Paint mTextPaint;
     // 画波浪的笔
     private Paint mWavePaint;
-
     // 文字的区域
     private Rect mTextRect;
 
     private ValueAnimator mAnimator;
     private int mMoveX = 0;
     private boolean isStartAnimation = false;
-
-    private boolean isHideProgressText = false;
 
     public WaveProgressView(Context context) {
         this(context, null);
@@ -72,38 +93,54 @@ public class WaveProgressView extends View {
 
     public WaveProgressView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        getAttrs(attrs);
         initPaint();
         initPath();
     }
 
+    private void getAttrs(AttributeSet attrs) {
+        TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.WaveProgressView);
+        mRadius = ta.getDimensionPixelSize(R.styleable.WaveProgressView_radius, DEFAULT_RADIUS);
+        mProgressHeight = mRadius * 2;
+        mTextColor = ta.getColor(R.styleable.WaveProgressView_textColor, Color.BLACK);
+        mWaveColor = ta.getColor(R.styleable.WaveProgressView_waveColor, Color.RED);
+        mBorderColor = ta.getColor(R.styleable.WaveProgressView_borderColor, Color.RED);
+        borderWidth = ta.getDimensionPixelOffset(R.styleable.WaveProgressView_borderWidth, dp2px(DEFAULT_BORDER_WIDTH));
+        mTextSize = ta.getDimensionPixelSize(R.styleable.WaveProgressView_textSize, sp2px(DEFAULT_TEXT_SIZE));
+        mWaveHeight = ta.getDimensionPixelSize(R.styleable.WaveProgressView_waveHeight, dp2px(DEFAULT_WAVE_HEIGHT));
+        mProgress = ta.getInteger(R.styleable.WaveProgressView_progress, 0);
+        isHideProgressText = ta.getBoolean(R.styleable.WaveProgressView_hideText, false);
+        ta.recycle();
+    }
+
     private void initPath() {
         mBerzierPath = new Path();
-        path = new Path();
-        path.addCircle(mProgressHeight / 2, mProgressHeight / 2, mProgressHeight / 2, Path.Direction.CCW);
+        mCirclePath = new Path();
+        mCirclePath.addCircle(mRadius, mRadius, mRadius, Path.Direction.CCW);
     }
 
     private void initPaint() {
         mWavePaint = new Paint();
-        mWavePaint.setColor(Color.RED);
+        mWavePaint.setColor(mWaveColor);
         mWavePaint.setStyle(Paint.Style.FILL);
         mWavePaint.setAntiAlias(true);
 
         mCirclePaint = new Paint();
         mCirclePaint.setStyle(Paint.Style.STROKE);// 空心画笔
-        mCirclePaint.setColor(Color.RED);
+        mCirclePaint.setColor(mBorderColor);
         mCirclePaint.setAntiAlias(true);
-        mCirclePaint.setStrokeWidth(5);
+        mCirclePaint.setStrokeWidth(borderWidth);
 
         mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mTextPaint.setColor(Color.BLACK);
-        mTextPaint.setTextSize(50);
+        mTextPaint.setColor(mTextColor);
+        mTextPaint.setTextSize(mTextSize);
         mTextRect = new Rect();
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        //圆形的进度条，正好是正方形的内切圆
+        //圆形的进度条，正好是正方形的内切圆(这边暂时没有考虑padding的影响)
         setMeasuredDimension(mProgressHeight, mProgressHeight);
     }
 
@@ -123,13 +160,13 @@ public class WaveProgressView extends View {
         mBerzierPath.close();
 
         //裁剪一个圆形的区域
-        canvas.clipPath(path);
+        canvas.clipPath(mCirclePath);
         canvas.drawPath(mBerzierPath, mWavePaint);
 
         //画圆
-        canvas.drawCircle(mProgressHeight / 2, mProgressHeight / 2, mProgressHeight / 2, mCirclePaint);
+        canvas.drawCircle(mRadius, mRadius, mRadius, mCirclePaint);
 
-        //开启属性动画使波浪浪起来
+        //开启属性动画使波浪浪起来(这里只需要启动一次)
         if (!isStartAnimation) {
             isStartAnimation = true;
             startAnimation();
@@ -141,8 +178,8 @@ public class WaveProgressView extends View {
             progress = "";
         }
         mTextPaint.getTextBounds(progress, 0, progress.length(), mTextRect);
-        canvas.drawText(progress, mProgressHeight / 2 - mTextRect.width() / 2,
-                mProgressHeight / 2 + mTextRect.height() / 2, mTextPaint);
+        canvas.drawText(progress, mRadius - mTextRect.width() / 2,
+                mRadius + mTextRect.height() / 2, mTextPaint);
     }
 
     private int getWaveY() {
@@ -216,8 +253,22 @@ public class WaveProgressView extends View {
         isHideProgressText = flag;
     }
 
+    /**
+     * 获取当前进度
+     *
+     * @return
+     */
+    public int getProgress() {
+        return mProgress;
+    }
+
     //dp to px
     protected int dp2px(int dpval) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dpval, getResources().getDisplayMetrics());
+    }
+
+    //sp to px
+    protected int sp2px(int dpval) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, dpval, getResources().getDisplayMetrics());
     }
 }
